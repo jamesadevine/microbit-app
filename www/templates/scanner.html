@@ -1,0 +1,22 @@
+<ion-modal-view>
+  <ion-header-bar>
+    <h1 class="title">Scan for your micro:bit</h1>
+  </ion-header-bar>
+  <ion-content>
+    <div class="row">
+      <button type="submit" ng-class="isScanning ? 'button button-block button-assertive':'button button-block button-calm'"  ng-click="scanForDevices()">
+        <ion-spinner icon="crescent" ng-if="isScanning"></ion-spinner> 
+        {{ isScanning ? "Stop Scan" : "Start Scan" }}
+      </button>
+    </div>
+    <ion-list>
+      <ion-item class="item-icon-right" ng-repeat="device in devices" ng-click="connect(device)">
+        {{device.name}}
+        <i class="icon ion-ios-information-outline" ion-stop-event="click" ng-click="characteristics(device)"></i>
+      </ion-item>
+    </ion-list>
+    <div class="row">
+      <button class="button button-full button-assertive" ng-click="closeScanner()">Cancel</button>
+    </div>
+  </ion-content>
+</ion-modal-view>
