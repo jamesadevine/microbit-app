@@ -1,5 +1,6 @@
 var horizontalID = 1201;
 var verticalID = 1202;
+var basePixelID = 1203
 var offset = 19;
 
 angular.module('microbit.directives', ['microbit.services', 'ngCordova.plugins.deviceMotion'])
@@ -19,6 +20,11 @@ angular.module('microbit.directives', ['microbit.services', 'ngCordova.plugins.d
 
     link: function(scope, element, attrs) {
 
+      var maxy = 0;
+      var maxx = 0;
+
+      scope.rowValues = [0x00,0x00,0x00,0x00,0x00];
+
       scope.ui = [];
       var images = [];
       var loaders = [];
@@ -36,8 +42,11 @@ angular.module('microbit.directives', ['microbit.services', 'ngCordova.plugins.d
       document.addEventListener("deviceready", function () {
         console.log("here");
 
+
+
         scope.toggle = true;
-        scope.previous = 13;
+        scope.rowCounter = 0;
+
 
         scope.accelerometer = $cordovaDeviceMotion.watchAcceleration({frequency:200});
         scope.accelerometer.then(
@@ -69,7 +78,9 @@ angular.module('microbit.directives', ['microbit.services', 'ngCordova.plugins.d
 
 
 
-            console.log(scope.board.controlling,Bluetooth.getConnected());
+
+
+            //console.log(scope.board.controlling,Bluetooth.getConnected());
             if(scope.board.controlling && Bluetooth.getConnected()){
               
 
@@ -89,12 +100,13 @@ angular.module('microbit.directives', ['microbit.services', 'ngCordova.plugins.d
                   console.log(JSON.stringify(object));
                 },verticalID,z);
               }
+
               scope.toggle=!scope.toggle;
             }
         });
       },false);
 
-      scope.createSprite = function(x,y,width,height,image,name,events,downHandler,upHandler){
+      scope.createSprite = function(x,y,width,height,image,name,events,toggle,downHandler,upHandler,clickHandler){
         scope.ui.push(
         {
           events:events,
@@ -105,37 +117,99 @@ angular.module('microbit.directives', ['microbit.services', 'ngCordova.plugins.d
           height:height,
           image:image,
           pressed:false,
+          toggle:toggle,
           downHandler:downHandler,
-          upHandler:upHandler
+          upHandler:upHandler,
+          clickHandler:clickHandler
         });
       };
 
       scope.canvasMouseDown = function(evt){
         var offset = $(scope.element).offset();
         console.log(offset);
-        var x = event.pageX - offset.left, y = event.pageY - offset.top;
+        var x = event.pageX - offset.left , y = event.pageY - offset.top;
+
+        console.log("BEFORE x ", x, "BEFORE y ",y);
+        var savedX = x;
+
+        x = y;
+        y = maxy - savedX;
+
+        console.log("AFTER x ", x, "AFTER y ",y);
+
+        _.each(scope.ui,function(uiElement){
+          console.log(Math.sqrt((x-uiElement.x)*(x-uiElement.x) + (y-uiElement.y)*(y-uiElement.y)),Math.sqrt((x-uiElement.x)*(x-uiElement.x) + (y-uiElement.y)*(y-uiElement.y))<uiElement.width+20);
+
+          if(Math.sqrt((x-uiElement.x)*(x-uiElement.x) + (y-uiElement.y)*(y-uiElement.y)) < (2*uiElement.width) && uiElement.events){
+            uiElement.clickHandler(uiElement);
+            uiElement.downHandler(uiElement);
+          }
+        });
+      };
+
+      scope.canvasMouseUp = function(evt){
+
+        var offset = $(scope.element).offset();
+        console.log(offset);
+        var x = event.pageX - offset.left , y = event.pageY - offset.top;
+
+        var savedX = x;
+
+        x = y;
+        y = maxy - savedX;
 
         _.each(scope.ui,function(uiElement){
           console.log(Math.sqrt((x-uiElement.x)*(x-uiElement.x) + (y-uiElement.y)*(y-uiElement.y)),Math.sqrt((x-uiElement.x)*(x-uiElement.x) + (y-uiElement.y)*(y-uiElement.y))<uiElement.width+20);
 
           if(Math.sqrt((x-uiElement.x)*(x-uiElement.x) + (y-uiElement.y)*(y-uiElement.y)) < (2*uiElement.width) && uiElement.events)
-            uiElement.downHandler(uiElement);
-        });
-      };
-
-      scope.canvasMouseUp = function(evt){
-        _.each(scope.ui,function(uiElement){
-          if(uiElement.events)
             uiElement.upHandler(uiElement);
         });
       };
 
       scope.onButtonDown = function(uiElement){
+        console.log("DOWN");
+        uiElement.pressed = true;
         uiElement.image = _.where(images,{src:"img/button-down.png"})[0].image;
       };
 
       scope.onButtonUp = function(uiElement){
+        console.log("UP");
+        uiElement.pressed = false;
         uiElement.image = _.where(images,{src:"img/button-up.png"})[0].image;
+      };
+
+      scope.writePixelData = function(row){
+
+        console.log("writing pixel data ",scope.rowValues[row], " with id ",basePixelID+row);
+        Bluetooth.write(function(object){
+          console.log(JSON.stringify(object));
+        },function(object){
+          console.log(JSON.stringify(object));
+        },basePixelID+row,scope.rowValues[row]);
+      };
+
+      scope.updateRow = function(coords){
+
+        var shift = (1 << coords.col);
+
+        if((scope.rowValues[coords.row] & shift))
+          scope.rowValues[coords.row] = (scope.rowValues[coords.row] & ~shift);
+        else
+          scope.rowValues[coords.row]  |= shift;
+
+        scope.writePixelData(coords.row);
+      };
+
+      scope.togglePixel = function(uiElement){
+
+        uiElement.pressed = !uiElement.pressed;
+
+        if(uiElement.pressed)
+          uiElement.image = _.where(images,{src:"img/pixel-on.png"})[0].image;
+        else
+          uiElement.image = _.where(images,{src:"img/pixel-off.png"})[0].image;
+        
+        scope.updateRow(uiElement.name); //coords use name for now... 
       };
 
       scope.loadImage = function(src,width,height){
@@ -169,10 +243,15 @@ angular.module('microbit.directives', ['microbit.services', 'ngCordova.plugins.d
 
       boardHeight = Math.round(498 * ratio);
 
+      maxy = boardHeight;
+      maxx = boardWidth;
+
       //loaders required because you can't synchonously load... there is no guarantee of ordering either... EW
-      loaders.push(scope.loadImage("img/board.png",boardWidth,boardHeight));
+      loaders.push(scope.loadImage("img/board.png",612,498));
       loaders.push(scope.loadImage("img/button-up.png",37,39));
       loaders.push(scope.loadImage("img/button-down.png",37,39));
+      loaders.push(scope.loadImage("img/pixel-off.png",13,23));
+      loaders.push(scope.loadImage("img/pixel-on.png",13,23));
 
       console.log("WIDTH: ",boardWidth," height:",boardHeight);
 
@@ -187,13 +266,52 @@ angular.module('microbit.directives', ['microbit.services', 'ngCordova.plugins.d
 
         scope.element.on("mousedown",scope.canvasMouseDown);
         scope.element.on("mouseup",scope.canvasMouseUp);
-        scope.element.on("touchstart",scope.canvasMouseDown);
-        scope.element.on("touchend",scope.canvasMouseUp);
+        //scope.element.on("touchstart",scope.canvasMouseDown);
+        //scope.element.on("touchend",scope.canvasMouseUp);
+
+        console.log("BUTTONA ",47*ratio,230*ratio);
 
         //urgh i hate javascript for it asynchonicity sometimes...
         scope.createSprite(0,0,boardWidth,boardHeight,_.where(images,{src:"img/board.png"})[0].image, "board", false);
-        scope.createSprite(47,230,37,39,_.where(images,{src:"img/button-up.png"})[0].image,"buttonA",true,scope.onButtonDown,scope.onButtonUp);
-        scope.createSprite(527.5,230,37,39,_.where(images,{src:"img/button-up.png"})[0].image,"buttonB",true,scope.onButtonDown,scope.onButtonUp);
+        scope.createSprite(47*ratio,230*ratio,37*ratio,39*ratio,_.where(images,{src:"img/button-up.png"})[0].image,"buttonA",true,false,scope.onButtonDown,scope.onButtonUp, function(){});
+        scope.createSprite(527.5*ratio,230*ratio,37*ratio,39*ratio,_.where(images,{src:"img/button-up.png"})[0].image,"buttonB",true,false,scope.onButtonDown,scope.onButtonUp, function(){});
+
+        //row1
+        scope.createSprite(205*ratio,155*ratio,13*ratio,23*ratio,_.where(images,{src:"img/pixel-off.png"})[0].image,{col:4,row:0},true,true,function(){},function(){},scope.togglePixel);
+        scope.createSprite(251*ratio,155*ratio,13*ratio,23*ratio,_.where(images,{src:"img/pixel-off.png"})[0].image,{col:3,row:0},true,true,function(){},function(){},scope.togglePixel);
+        scope.createSprite(300*ratio,155*ratio,13*ratio,23*ratio,_.where(images,{src:"img/pixel-off.png"})[0].image,{col:2,row:0},true,true,function(){},function(){},scope.togglePixel);
+        scope.createSprite(347*ratio,155*ratio,13*ratio,23*ratio,_.where(images,{src:"img/pixel-off.png"})[0].image,{col:1,row:0},true,true,function(){},function(){},scope.togglePixel);
+        scope.createSprite(394*ratio,155*ratio,13*ratio,23*ratio,_.where(images,{src:"img/pixel-off.png"})[0].image,{col:0,row:0},true,true,function(){},function(){},scope.togglePixel);
+
+        //row2
+        scope.createSprite(205*ratio,201*ratio,13*ratio,23*ratio,_.where(images,{src:"img/pixel-off.png"})[0].image,{col:4,row:1},true,true,function(){},function(){},scope.togglePixel);
+        scope.createSprite(251*ratio,201*ratio,13*ratio,23*ratio,_.where(images,{src:"img/pixel-off.png"})[0].image,{col:3,row:1},true,true,function(){},function(){},scope.togglePixel);
+        scope.createSprite(300*ratio,201*ratio,13*ratio,23*ratio,_.where(images,{src:"img/pixel-off.png"})[0].image,{col:2,row:1},true,true,function(){},function(){},scope.togglePixel);
+        scope.createSprite(347*ratio,201*ratio,13*ratio,23*ratio,_.where(images,{src:"img/pixel-off.png"})[0].image,{col:1,row:1},true,true,function(){},function(){},scope.togglePixel);
+        scope.createSprite(394*ratio,201*ratio,13*ratio,23*ratio,_.where(images,{src:"img/pixel-off.png"})[0].image,{col:0,row:1},true,true,function(){},function(){},scope.togglePixel);
+
+        //row3
+        scope.createSprite(205*ratio,247*ratio,13*ratio,23*ratio,_.where(images,{src:"img/pixel-off.png"})[0].image,{col:4,row:2},true,true,function(){},function(){},scope.togglePixel);
+        scope.createSprite(251*ratio,247*ratio,13*ratio,23*ratio,_.where(images,{src:"img/pixel-off.png"})[0].image,{col:3,row:2},true,true,function(){},function(){},scope.togglePixel);
+        scope.createSprite(300*ratio,247*ratio,13*ratio,23*ratio,_.where(images,{src:"img/pixel-off.png"})[0].image,{col:2,row:2},true,true,function(){},function(){},scope.togglePixel);
+        scope.createSprite(347*ratio,247*ratio,13*ratio,23*ratio,_.where(images,{src:"img/pixel-off.png"})[0].image,{col:1,row:2},true,true,function(){},function(){},scope.togglePixel);
+        scope.createSprite(394*ratio,247*ratio,13*ratio,23*ratio,_.where(images,{src:"img/pixel-off.png"})[0].image,{col:0,row:2},true,true,function(){},function(){},scope.togglePixel);
+
+        //row4
+        scope.createSprite(205*ratio,295*ratio,13*ratio,23*ratio,_.where(images,{src:"img/pixel-off.png"})[0].image,{col:4,row:3},true,true,function(){},function(){},scope.togglePixel);
+        scope.createSprite(251*ratio,295*ratio,13*ratio,23*ratio,_.where(images,{src:"img/pixel-off.png"})[0].image,{col:3,row:3},true,true,function(){},function(){},scope.togglePixel);
+        scope.createSprite(300*ratio,295*ratio,13*ratio,23*ratio,_.where(images,{src:"img/pixel-off.png"})[0].image,{col:2,row:3},true,true,function(){},function(){},scope.togglePixel);
+        scope.createSprite(347*ratio,295*ratio,13*ratio,23*ratio,_.where(images,{src:"img/pixel-off.png"})[0].image,{col:1,row:3},true,true,function(){},function(){},scope.togglePixel);
+        scope.createSprite(394*ratio,295*ratio,13*ratio,23*ratio,_.where(images,{src:"img/pixel-off.png"})[0].image,{col:0,row:3},true,true,function(){},function(){},scope.togglePixel);
+
+        //row5
+        scope.createSprite(205*ratio,342*ratio,13*ratio,23*ratio,_.where(images,{src:"img/pixel-off.png"})[0].image,{col:4,row:4},true,true,function(){},function(){},scope.togglePixel);
+        scope.createSprite(251*ratio,342*ratio,13*ratio,23*ratio,_.where(images,{src:"img/pixel-off.png"})[0].image,{col:3,row:4},true,true,function(){},function(){},scope.togglePixel);
+        scope.createSprite(300*ratio,342*ratio,13*ratio,23*ratio,_.where(images,{src:"img/pixel-off.png"})[0].image,{col:2,row:4},true,true,function(){},function(){},scope.togglePixel);
+        scope.createSprite(347*ratio,342*ratio,13*ratio,23*ratio,_.where(images,{src:"img/pixel-off.png"})[0].image,{col:1,row:4},true,true,function(){},function(){},scope.togglePixel);
+        scope.createSprite(394*ratio,342*ratio,13*ratio,23*ratio,_.where(images,{src:"img/pixel-off.png"})[0].image,{col:0,row:4},true,true,function(){},function(){},scope.togglePixel);
+
+
 
         scope.timeoutID = $interval(function() {
           scope.render();

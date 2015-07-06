@@ -20,6 +20,12 @@
     transform: rotate(90deg);
 }
 
+.control-button{
+  position:absolute;
+  top:0;
+  right:20;
+}
+
 .center{
   display: -webkit-box;
   display: -moz-box;
