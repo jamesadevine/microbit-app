@@ -1,6 +1,6 @@
 angular.module('microbit.services', [])
 
-.service('Bluetooth', function() {
+.service('Bluetooth', function($ionicPopup) {
 
   var microbitServiceUuid = "e95d93af-251d-470a-a062-fa1922dfa9a8";
   var microbitWriteCharacteristicUuid = "e95d5404-251d-470a-a062-fa1922dfa9a8";
@@ -101,7 +101,10 @@ angular.module('microbit.services', [])
     write:function(success,error,id,value){
 
       if(bleObject === null){
-        alert("no device connected");
+        $ionicPopup.alert({
+          title: 'No device connected',
+          template: 'Woah! You need to connect to your micro:bit first!'
+        });
         return;
       }
 

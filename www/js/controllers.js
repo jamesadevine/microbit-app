@@ -178,26 +178,36 @@ angular.module('microbit.controllers', ['microbit.services'])
 
 })
 
-.controller('HomeCtrl', function($scope, $ionicModal, $timeout, Bluetooth) {
+.controller('HomeCtrl', function($scope, $ionicModal, $timeout, Bluetooth, $ionicPopup) {
   $scope.properties = {
     name:"microbit",
     controlling:false
   };
 
   $scope.control = function(){
-    $scope.properties.controlling =! $scope.properties.controlling;
+    if(!Bluetooth.getConnected()){
+      $ionicPopup.alert({
+        title: 'No device connected',
+        template: 'Woah! You need to connect to your micro:bit first!'
+      });
+      return;
+    }
 
-    Bluetooth.write(function(object){
-      console.log(JSON.stringify(object));
-    },function(object){
-      console.log(JSON.stringify(object));
-    },1201,19);
+    $scope.properties.controlling = !$scope.properties.controlling;
 
-    Bluetooth.write(function(object){
-      console.log(JSON.stringify(object));
-    },function(object){
-      console.log(JSON.stringify(object));
-    },1202,19);
+    if(!$scope.properties.controlling){
+      Bluetooth.write(function(object){
+        console.log(JSON.stringify(object));
+      },function(object){
+        console.log(JSON.stringify(object));
+      },1201,19);
+
+      Bluetooth.write(function(object){
+        console.log(JSON.stringify(object));
+      },function(object){
+        console.log(JSON.stringify(object));
+      },1202,19);
+    }
   };
 
   $scope.counter = 0;

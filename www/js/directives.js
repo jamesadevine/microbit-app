@@ -258,7 +258,7 @@ angular.module('microbit.directives', ['microbit.services', 'ngCordova.plugins.d
       console.log("loaders",loaders);
       $q.all(loaders).then(function(){
         //(scope.board.width || "612px") scope.board.height || "498px")
-        scope.element = angular.element('<canvas data-tap-disabled="true" style="border: solid 5px red;" width="'+boardWidth+'px" height="'+boardHeight+'px"></canvas>');
+        scope.element = angular.element('<canvas data-tap-disabled="true" width="'+boardWidth+'px" height="'+boardHeight+'px"></canvas>');
 
         scope.canvas = scope.element[0];
 

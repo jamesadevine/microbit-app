@@ -6,8 +6,8 @@
 
 .microbit-board{
   width:100%;
-  height:100% !important;
-
+  height:100%;
+  display:inline-block !important;
 
   /*max-width: 612px;max-height:498px;height:100%;height:auto !important;*/
 }
@@ -21,9 +21,30 @@
 }
 
 .control-button{
+  font-size:24pt;
   position:absolute;
   top:0;
   right:0;
+}
+
+.start{
+  color:green;
+}
+
+.stop{
+  color:red;
+}
+
+.flexbox-container{
+  display: -ms-flexbox;
+  display: -webkit-flex;
+  display: flex;
+
+  -ms-flex-align: center;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+
+  align-items: center;
 }
 
 .center{
