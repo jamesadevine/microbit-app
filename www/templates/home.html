@@ -1,10 +1,15 @@
 <ion-view view-title="Microbit" ng-controller="HomeCtrl">
-  <ion-content class="">
+  <ion-content>
       <div class="microbit-board landscape center" style="margin-top:45px;" microbit-board board="properties">
         <button type="submit" ng-class="properties.controlling ? 'control-button stop':'control-button start'"  ng-click="control()">
             <i ng-class="properties.controlling ? 'ion ion-stop':'ion ion-play'" class=""></i>
         </button>
+        <button type="submit" class="power-button" ng-click="swapSpeed()">
+            <i class="ion ion-record {{ color }}" ></i>
+        </button>
       </div>
-      
+      <div class="item range slider">
+        <input type="range"  min="{{ properties.minAccel }}" max="{{ properties.maxAccel }}" step="1" ng-model="properties.acceleration" />
+      </div>
   </ion-content>
 </ion-view>

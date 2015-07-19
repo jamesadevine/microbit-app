@@ -34,10 +34,6 @@ angular.module('microbit.directives', ['microbit.services', 'ngCordova.plugins.d
           scope.ctx.drawImage(uiElement.image,uiElement.x,uiElement.y,uiElement.width,uiElement.height);
         });
       };
-      
-      scope.normalize = function(value){
-        return (value-(-9))/(9-(-9))*65535;
-      };
 
       document.addEventListener("deviceready", function () {
         console.log("here");
@@ -56,7 +52,7 @@ angular.module('microbit.directives', ['microbit.services', 'ngCordova.plugins.d
           },
           function(result) {
             var y = result.y;
-            var z = result.z;
+            var z = Number(scope.board.acceleration) + offset;
             
             y=-y;
 
@@ -65,22 +61,16 @@ angular.module('microbit.directives', ['microbit.services', 'ngCordova.plugins.d
             if(y<-6)
               y=-6;
 
-            if(z>4)
-              z=2;
-            else if(z<-4)
-              z=-2;
-            else
-              z=0;
+            /*if(z>scope.board.maxAccel)
+              z=scope.board.maxAccel;
+            else if(z<scope.board.minAccel)
+              z=scope.board.minAccel;*/
 
 
             y = Math.round(y+offset);
-            z = Math.round(z+offset);
+            //z = Math.round(z+offset);
+            
 
-
-
-
-
-            //console.log(scope.board.controlling,Bluetooth.getConnected());
             if(scope.board.controlling && Bluetooth.getConnected()){
               
 

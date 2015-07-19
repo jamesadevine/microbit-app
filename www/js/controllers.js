@@ -179,9 +179,37 @@ angular.module('microbit.controllers', ['microbit.services'])
 })
 
 .controller('HomeCtrl', function($scope, $ionicModal, $timeout, Bluetooth, $ionicPopup) {
+
+  $scope.accelIndex = 0;
+
+  
+  $scope.colors = ["black","green","amber","red"];
+  $scope.accels = [2,4,6,9];
+
+  $scope.color = $scope.colors[$scope.accelIndex];
+
   $scope.properties = {
     name:"microbit",
-    controlling:false
+    controlling:false,
+    maxAccel:$scope.accels[$scope.accelIndex],
+    minAccel:-$scope.accels[$scope.accelIndex],
+    acceleration: 0
+  };
+
+  $scope.$watch('properties.acceleration', function() {
+       console.log($scope.properties.acceleration);
+   });
+
+  $scope.swapSpeed = function(acceleration){
+
+    $scope.accelIndex++;
+
+    if($scope.accelIndex > $scope.accels.length-1)
+      $scope.accelIndex = 0;
+
+    $scope.properties.maxAccel = $scope.accels[$scope.accelIndex];
+    $scope.properties.minAccel = -$scope.accels[$scope.accelIndex];
+    $scope.color = $scope.colors[$scope.accelIndex];
   };
 
   $scope.control = function(){
