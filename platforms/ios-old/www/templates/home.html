@@ -1,0 +1,10 @@
+<ion-view view-title="Microbit" ng-controller="HomeCtrl">
+  <ion-content class="">
+      <div class="microbit-board landscape center" style="margin-top:45px;" microbit-board board="properties">
+        <button type="submit" ng-class="properties.controlling ? 'control-button stop':'control-button start'"  ng-click="control()">
+            <i ng-class="properties.controlling ? 'ion ion-stop':'ion ion-play'" class=""></i>
+        </button>
+      </div>
+      
+  </ion-content>
+</ion-view>
